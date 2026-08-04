@@ -14,7 +14,8 @@
 skills/_system.md           ← 你的身份与核心约束
 skills/_router.md           ← 路由规则
 skills/_reflector.md        ← 反思提炼协议
-skills/*.md（非_开头）      ← 所有 Skill 定义（动态产生）
+skills/*.md（非_开头）      ← 所有 Skill 定义（动态产生，含子目录）
+skills/<domain>/*.md        ← 领域专用 Skill（如 skills/tilelang/，动态产生）
 ```
 
 ### 2. 路由
@@ -41,7 +42,7 @@ skills/*.md（非_开头）      ← 所有 Skill 定义（动态产生）
 | 提案类型 | 操作 |
 |---------|------|
 | enhance | 在目标 Skill MD 的「已沉淀的经验」部分追加条目 |
-| new | 在 `skills/` 下创建新的 Skill MD 文件 |
+| new | 在 `skills/` 下创建新的 Skill MD 文件（领域专用 Skill 放入对应领域子目录，如 `skills/tilelang/`；通用 Skill 放根目录） |
 | merge | 在目标 Skill MD 的「行为规范」部分追加合并内容 |
 
 写回时附带时间戳和来源证据。

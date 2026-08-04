@@ -49,7 +49,7 @@
   ```
   - [YYYY-MM-DD HH:MM] <建议内容>（来源: <证据摘要>）
   ```
-- **new**: 在 `skills/` 下创建新 Skill MD 文件，结构为：
+- **new**: 在 `skills/` 下创建新 Skill MD 文件（领域专用 Skill 放入对应领域子目录，如 `skills/tilelang/`；通用 Skill 放根目录），结构为：
   ```markdown
   # Skill: <名称>
 
