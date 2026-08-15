@@ -11,7 +11,7 @@
   - Ascend C codegen 结果
   - 无硬件环境下验证 Ascend 后端行为
 
-**非 tilelang 任务不涉及本 Skill**（例如通用 git、文档、其他语言/框架的代码任务，不匹配）。
+**非 tilelang 任务不涉及本 Skill**（例如通用 git、文档、其他语言/框架的代码任务，不匹配）。本 Skill 是 tilelang 仓库专用能力，触发条件限定为"用户分析 tilelang 相关代码"。
 
 ## 行为规范
 1. **确认环境**：运行 `python -c "import tilelang; print(tilelang.__version__)"` 确认 dev-root 构建可导入；若遇 `torch_npu` 报错，加 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 环境变量
@@ -28,6 +28,7 @@
    - 用测试文件的断言核对 codegen 输出（如 `::vadds(*((&(dst[0]))), src,`、`MODE_MERGING`、无 `simd_inst::vadds(`、顺序 `vlds < ::vadds < vsts`）
 
 ## 已沉淀的经验
-- [2026-08-04 19:04] 本 Skill 是 tilelang 仓库专用能力，触发条件限定为"用户分析 tilelang 相关代码"；非 tilelang 任务不匹配本 Skill（来源: 用户修改提案——"该 skill 是 tilelang 的能力，应在用户分析 tilelang 相关代码时才调用"）
-- [2026-08-04 19:04] 无 Ascend 硬件下获取 codegen：`lower(func, target="ascend")` 默认 `enable_device_compile=False`，只跑 `device_codegen_without_compile`，`.kernel_source` 即 Ascend C 源码；`TORCH_DEVICE_BACKEND_AUTOLOAD=0` 规避 torch_npu 报错（来源: 本次会话成功运行）
-- [2026-08-04 19:04] lower_trace 工具用法：`enable(mode="html", trace_dir=..., codegen_output=...)` + `lower()` 组合生成 69-pass HTML 报告；`_without_compile` codegen FFI 不在包装列表，kernel_source 需显式落盘（来源: 本次会话产出 `maint/lower_trace_ascend_simd_merging/`，4 项测试断言全部通过）
+
+### Codegen 与 Trace 工具用法
+- 无 Ascend 硬件下获取 codegen：`lower(func, target="ascend")` 默认 `enable_device_compile=False`，只跑 `device_codegen_without_compile`，`.kernel_source` 即 Ascend C 源码；`TORCH_DEVICE_BACKEND_AUTOLOAD=0` 规避 torch_npu 报错
+- lower_trace 工具用法：`enable(mode="html", trace_dir=..., codegen_output=...)` + `lower()` 组合生成 69-pass HTML 报告；`_without_compile` codegen FFI 不在包装列表，kernel_source 需显式落盘
