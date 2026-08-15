@@ -32,3 +32,9 @@
 ### Codegen 与 Trace 工具用法
 - 无 Ascend 硬件下获取 codegen：`lower(func, target="ascend")` 默认 `enable_device_compile=False`，只跑 `device_codegen_without_compile`，`.kernel_source` 即 Ascend C 源码；`TORCH_DEVICE_BACKEND_AUTOLOAD=0` 规避 torch_npu 报错
 - lower_trace 工具用法：`enable(mode="html", trace_dir=..., codegen_output=...)` + `lower()` 组合生成 69-pass HTML 报告；`_without_compile` codegen FFI 不在包装列表，kernel_source 需显式落盘
+
+### 无卡仿真执行（cannsim）
+- [2026-08-15 12:47] 无硬件下跑通算子仿真流水图链路：`lower(target="ascend", enable_device_compile=False)` 拿源码 → 手动 `bisheng --npu-soc=<camodel 报告 soc> --cce-aicore-only` + `ld.lld -m aicorelinux -Ttext 0` 链接 aibin → 纯 ACL ctypes driver → `cannsim record` + `cannsim report`（来源: 本会话 maint/rmsnorm_sim/ 产出 trace_core0.json）
+- [2026-08-15 12:47] bisheng 的 soc 名必须走 `--npu-soc=Ascend950PR_9589`（与 camodel driver stub `halGetSocVersion` 报告一致），`--npu-arch=` 不接受 soc 名（来源: `--npu-arch=Ascend950PR_9589` 报 Unsupported，`--npu-soc=` 成功）
+- [2026-08-15 12:47] 纯 ACL launch 必须按 codegen 签名顺序打包参数（如 `main_kernel(RSTD, W, X, Y, eps)` 而非 Python 定义顺序），并设置 `kAclLaunchKernelAttrDynUbufSize`（kernel 用 `buf_dyn_shmem` 时否则挂起）；跳过 H2D memcpy 避免 camodel TDaw 崩溃（来源: 参数顺序/DynUbuf/H2D 三处踩坑）
+- [2026-08-15 12:47] `cannsim report` 若报 `Failed determine BAR pipeline`，是 trace_tools 不识别 `SIMT_BAR`：在 `Ascend910_9599_ESL.py` 规则表补 `SIMT_BAR → FLOWCTRL`（来源: rmsnorm SimtVF 屏障指令触发 RuntimeError，补丁后 JSON 生成成功）
