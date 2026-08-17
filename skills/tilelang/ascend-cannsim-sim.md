@@ -39,9 +39,19 @@
    - report 三级 fallback：cannprof → BiProfRunner → trace_tools；cannprof 缺失/BiProfRunner import 损坏时自动降级，trace_tools 纯 Python 也能出 JSON
    - 若报 `Failed determine BAR pipeline`：trace_tools 不识别 `SIMT_BAR`（SimtVF 屏障指令）→ 在 `<cann>/python/site-packages/cannsim/trace_tools/model2trace/Ascend910_9599_ESL.py` 规则表补 `(re.compile(r"SIMT_BAR"), pattern_none, lambda ...: DavinciV220PipelineType.PID_PIPELINE_FLOWCTRL)`
 7. **验证**：确认 `trace_core0.json` 为合法 Chrome Tracing JSON，含 `X` 事件（指令执行区间）覆盖多条 pipeline（SCALAR/RVECSU/RVECEX/RVECST/FLOWCTRL 等）
-
+8. **保留算子源码（每个仿真必做）**：在仿真 archive 下建 `kernel_src/` 目录，随产物一并保留：
+   - `.asc`（AscendC 源码，`lower(target="ascend", enable_device_compile=False)` 的 `.kernel_source`）
+   - `.aibin`（编译产物）
+   - `compile_*.py`（生成 .asc/.aibin 的脚本）
+   - `launch_*.py`（ACL driver）
+   - **Python 级 tilelang 算子源码**（如 `flash_attention/core.py` 的 `flash_attention_fwd`，按实际来源复制）
+   - 附 `README.md` 记录算子签名、shape、dyn_ubuf、soc 及实际 launch 配置（有 grid 的算子按需记录 num_blocks）
+   - 原因：同名 `.aibin`/`.asc` 会被后续 `compile_*.py` 重跑覆盖，不保留源码则无法追溯已仿真算子的原始定义（来源: 2026-08-17 会话，sim_mha1 的 aibin 被 16:44 重编译覆盖，只能靠 kernel_src/ 追溯）
+9. **record 退出码非 0 不代表内核失败**：`cannsim record` 可能报 `Simulation FAILED` / `USER_APP failed (exit=-11)`（用户程序退出阶段段错误），但只要 `cannsim.log` 含 `TASK_BEGIN ... TASK_DONE` 且 `MHA_LAUNCH_OK`，产物完整；直接对 archive 跑 `cannsim report` 仍可生成流水图（来源: 2026-08-17 sim_mha1_rerun 实测，record 判 FAILED 但 report 产出 175MB trace_core0.json / 628K 事件）
 ## 已沉淀的经验
 - [2026-08-15 12:47] 完整链路：lower(不编译) → bisheng --npu-soc + ld.lld → 纯 ACL driver → cannsim record → cannsim report 产出流水图 JSON（来源: 本会话 maint/rmsnorm_sim/ 全链路跑通，trace_core0.json 128KB/412 事件）
 - [2026-08-15 12:47] 大 shape 仿真陷阱：batch=4096/d=4096 时 instr.bin 增长到 3.6GB 且 10 分钟跑不完；先用 batch=64/d=1024 验证链路（来源: 本会话实测）
 - [2026-08-15 12:47] 纯 ACL driver 三处必踩坑：codegen 参数重排、dyn_ubuf_size 未设置导致挂起、H2D memcpy 触发 TDaw 崩溃（来源: 本会话逐一修复）
 - [2026-08-15 12:47] trace_tools SIMT_BAR 补丁是 Ascend950 系 SimtVF kernel 出流水图的必要修复（来源: 补丁后 report 从 RuntimeError 变为 Json Saved）
+- [2026-08-17 15:21] **每个仿真必须保留算子源码**：archive 下 `kernel_src/` 保存 `.asc` + `.aibin` + compile/launch 脚本 + **Python 级 tilelang 算子源码**（core.py 等）+ README；同名文件会被后续 compile 重跑覆盖，不保留无法追溯（来源: 用户明确建议，sim_mha1_rerun 已落实）
+- [2026-08-17 15:21] record 判 FAILED（USER_APP exit=-11）但 TASK_DONE 出现时，产物可用，直接跑 report 仍出流水图（来源: sim_mha1_rerun 实测，trace_core0.json 175MB/628K 事件/13 pipeline）
